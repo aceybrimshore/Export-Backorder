@@ -1,0 +1,6 @@
+{
+  "name": "Export & Work Order Priority Planner",
+  "description": "Planning tool to filter backorders, group export items, evaluate required ship dates against work order coverage, and reprioritize production.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
