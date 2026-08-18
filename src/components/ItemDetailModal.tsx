@@ -1,5 +1,6 @@
 import React from 'react';
 import { ProcessedPriorityItem, SimulatedWorkOrder } from '../types';
+import { formatDisplayDate } from '../utils/pipeline';
 import {
   X,
   Package,
@@ -61,7 +62,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 rounded-2xl max-w-3xl w-full p-6 shadow-2xl space-y-6 my-8">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 rounded-2xl max-w-4xl w-full p-6 shadow-2xl space-y-6 my-8">
         {/* Header */}
         <div className="flex items-start justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
           <div>
@@ -137,6 +138,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
               <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 text-[11px] font-semibold">
                 <tr>
                   <th className="py-2 px-3">Sales Order #</th>
+                  <th className="py-2 px-3">Order Date</th>
                   <th className="py-2 px-3">Customer Name</th>
                   <th className="py-2 px-3">Location</th>
                   <th className="py-2 px-3 text-right">BO Qty</th>
@@ -147,8 +149,11 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {item.underlyingOrders.map(so => (
                   <tr key={so.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                    <td className="py-2 px-3 font-mono font-semibold text-slate-900 dark:text-white">
+                    <td className="py-2 px-3 font-mono font-semibold text-slate-900 dark:text-white whitespace-nowrap">
                       {so.salesOrderNumber}
+                    </td>
+                    <td className="py-2 px-3 text-slate-600 dark:text-slate-400 font-mono text-[11px] whitespace-nowrap">
+                      {so.orderDate ? formatDisplayDate(so.orderDate) : 'N/A'}
                     </td>
                     <td className="py-2 px-3 text-slate-700 dark:text-slate-300">
                       {so.customerName}
@@ -157,11 +162,11 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                     <td className="py-2 px-3 text-right font-mono font-bold">
                       {so.backOrderQty}
                     </td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-600 dark:text-slate-400">
+                    <td className="py-2 px-3 text-right font-mono text-slate-600 dark:text-slate-400 whitespace-nowrap">
                       ${so.backOrderValue.toLocaleString()}
                     </td>
-                    <td className="py-2 px-3 text-slate-700 dark:text-slate-300 font-medium">
-                      {so.stockRequiredBy}
+                    <td className="py-2 px-3 text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap font-mono text-[11px]">
+                      {formatDisplayDate(so.stockRequiredBy)}
                     </td>
                   </tr>
                 ))}

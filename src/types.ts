@@ -2,6 +2,7 @@ export interface RawBackorderItem {
   id: string;
   customerName: string;
   salesOrderNumber: string;
+  orderDate?: string; // YYYY-MM-DD or DD/MM/YYYY (Sales Order Date)
   description: string;
   item: string; // SKU / Part #
   location: string;
@@ -40,6 +41,7 @@ export interface ProcessedPriorityItem {
   netstockIndicator: string;
   totalBOQty: number;
   totalBOValue: number;
+  earliestOrderDate?: string;
   earliestStockRequiredBy: string;
   earliestShipDate: string;
   

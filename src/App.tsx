@@ -18,9 +18,10 @@ import { PriorityTable } from './components/PriorityTable';
 import { ItemDetailModal } from './components/ItemDetailModal';
 import { AddWorkOrderModal } from './components/AddWorkOrderModal';
 import { WorkOrderRequisitionModal } from './components/WorkOrderRequisitionModal';
-import { CsvUploadModal } from './components/CsvUploadModal';
+import { CsvUploadModal, UploadSummary } from './components/CsvUploadModal';
 import { ThemeSelectorModal } from './components/ThemeSelectorModal';
 import { ScenarioManagerModal } from './components/ScenarioManagerModal';
+import { CheckCircle2, X } from 'lucide-react';
 
 export default function App() {
   // Theme State
@@ -61,13 +62,42 @@ export default function App() {
     return saved ? JSON.parse(saved) : {};
   });
 
-  // State 3: Modals
+  // State 3: Modals & Notifications
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isRequisitionsOpen, setIsRequisitionsOpen] = useState(false);
   const [isAddWoOpen, setIsAddWoOpen] = useState(false);
   const [isScenariosOpen, setIsScenariosOpen] = useState(false);
   const [selectedItemForDetail, setSelectedItemForDetail] = useState<ProcessedPriorityItem | null>(null);
   const [selectedItemForWo, setSelectedItemForWo] = useState<ProcessedPriorityItem | null>(null);
+  const [uploadToast, setUploadToast] = useState<{
+    title: string;
+    message: string;
+    timestamp: string;
+  } | null>(null);
+
+  // Auto-dismiss upload toast after 7s
+  useEffect(() => {
+    if (uploadToast) {
+      const timer = setTimeout(() => {
+        setUploadToast(null);
+      }, 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [uploadToast]);
+
+  // Wide Canvas View Mode (defaults to true for maximum table visibility without horizontal scrolling)
+  const [isWideCanvas, setIsWideCanvas] = useState<boolean>(() => {
+    const saved = localStorage.getItem('rhino_planner_wide_canvas');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  const handleToggleWideCanvas = () => {
+    setIsWideCanvas(prev => {
+      const next = !prev;
+      localStorage.setItem('rhino_planner_wide_canvas', String(next));
+      return next;
+    });
+  };
 
   // Auto-Save Effects
   useEffect(() => {
@@ -173,7 +203,8 @@ export default function App() {
 
   const handleApplyUploadedData = (
     newBackorders: RawBackorderItem[],
-    newWorkOrders: RawWorkOrder[]
+    newWorkOrders: RawWorkOrder[],
+    summary?: UploadSummary
   ) => {
     if (newBackorders.length > 0) {
       setBackorders(newBackorders);
@@ -183,10 +214,20 @@ export default function App() {
     }
     setSimulatedWOs([]);
     setUserCustomRanks({});
+
+    const boCount = summary ? summary.backordersCount : newBackorders.length;
+    const woCount = summary ? summary.workOrdersCount : newWorkOrders.length;
+    const timeStr = summary ? summary.timestamp : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    setUploadToast({
+      title: 'CSV Import Completed Successfully',
+      message: `Loaded ${boCount} backorder demand lines and ${woCount} work order schedules into the priority pipeline at ${timeStr}.`,
+      timestamp: timeStr
+    });
   };
 
   const handleExportCsv = () => {
-    let csv = `Priority,Item,Description,Customer Name,Sales Orders,Netstock Indicator,Total BO Qty,Total BO Value,Earliest Stock Required By,Earliest Ship Date,Scheduled Qty,Earliest WO Start,WO Numbers,Coverage Balance,Coverage Status\n`;
+    let csv = `Priority,Item,Description,Customer Name,Sales Orders,Netstock Indicator,Total BO Qty,Total BO Value,Earliest Order Date,Earliest Stock Required By,Earliest Ship Date,Scheduled Qty,Earliest WO Start,WO Numbers,Coverage Balance,Coverage Status\n`;
 
     processedItems.forEach(row => {
       const descEsc = `"${row.description.replace(/"/g, '""')}"`;
@@ -194,7 +235,7 @@ export default function App() {
       const soEsc = `"${row.salesOrders.replace(/"/g, '""')}"`;
       const woEsc = `"${row.woNumbers.replace(/"/g, '""')}"`;
 
-      csv += `${row.priority},${row.item},${descEsc},${custEsc},${soEsc},"${row.netstockIndicator}",${row.totalBOQty},${row.totalBOValue},${row.earliestStockRequiredBy},${row.earliestShipDate},${row.scheduledQty},${row.earliestWOStart || ''},${woEsc},${row.coverageBalance},"${row.coverageStatus}"\n`;
+      csv += `${row.priority},${row.item},${descEsc},${custEsc},${soEsc},"${row.netstockIndicator}",${row.totalBOQty},${row.totalBOValue},${row.earliestOrderDate || ''},${row.earliestStockRequiredBy},${row.earliestShipDate},${row.scheduledQty},${row.earliestWOStart || ''},${woEsc},${row.coverageBalance},"${row.coverageStatus}"\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -223,10 +264,42 @@ export default function App() {
         onOpenScenarios={() => setIsScenariosOpen(true)}
         currentThemeId={currentThemeId}
         totalShortages={totalShortages}
+        isWideCanvas={isWideCanvas}
       />
 
+      {/* Floating Success Toast when CSV Upload Completes */}
+      {uploadToast && (
+        <div className="fixed top-20 right-4 sm:right-8 z-50 max-w-md w-full animate-in slide-in-from-top-4 fade-in duration-300 pointer-events-auto">
+          <div className="bg-emerald-900/95 dark:bg-emerald-950/95 backdrop-blur-md border border-emerald-500 text-white p-4 rounded-2xl shadow-2xl flex items-start gap-3">
+            <div className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg flex-shrink-0 mt-0.5">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0 pr-1">
+              <div className="flex items-center justify-between gap-2 mb-0.5">
+                <span className="text-xs font-bold text-white tracking-wide">
+                  {uploadToast.title}
+                </span>
+                <span className="text-[10px] text-emerald-300 font-mono">
+                  {uploadToast.timestamp}
+                </span>
+              </div>
+              <p className="text-xs text-emerald-100 leading-relaxed">
+                {uploadToast.message}
+              </p>
+            </div>
+            <button
+              onClick={() => setUploadToast(null)}
+              className="text-emerald-300 hover:text-white p-1 rounded-lg hover:bg-emerald-800/50 transition-colors"
+              title="Dismiss notification"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className={`flex-1 ${isWideCanvas ? 'max-w-[98%]' : 'max-w-7xl'} w-full mx-auto px-3 sm:px-4 lg:px-6 py-6 transition-all duration-200`}>
         {/* KPI Metric Cards */}
         <KPICards items={processedItems} currentThemeId={currentThemeId} />
 
@@ -250,6 +323,8 @@ export default function App() {
           }}
           onMovePriority={handleMovePriority}
           currentThemeId={currentThemeId}
+          isWideCanvas={isWideCanvas}
+          onToggleWideCanvas={handleToggleWideCanvas}
         />
       </main>
 

@@ -159,6 +159,16 @@ export function processPipeline(
       ? formatDisplayDate(requiredDateObjs[0])
       : 'N/A';
 
+    // Earliest Order Date (Sales Order Date)
+    const orderDateObjs = rows
+      .map(r => parseFlexibleDate(r.orderDate))
+      .filter((d): d is Date => d !== null);
+    orderDateObjs.sort((a, b) => a.getTime() - b.getTime());
+
+    const earliestOrderDate = orderDateObjs.length > 0
+      ? formatDisplayDate(orderDateObjs[0])
+      : undefined;
+
     // Earliest Ship Date
     const shipDateObjs = rows
       .map(r => parseFlexibleDate(r.expectedShipDate))
@@ -242,6 +252,7 @@ export function processPipeline(
       netstockIndicator,
       totalBOQty,
       totalBOValue,
+      earliestOrderDate,
       earliestStockRequiredBy,
       earliestShipDate,
       scheduledQty,
